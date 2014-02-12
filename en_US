@@ -1,0 +1,11 @@
+export MEMTXT="Memory"
+
+export CPUTEXT="CPU Information"
+
+export TEMPERATURETXT="System Temperatures" 
+
+export FILESYSTEMTXT="Filesystem Information" 
+
+export PCIBUSTXT="PCI Bus Device Information"
+
+export SAITITLE="System Status and Information"

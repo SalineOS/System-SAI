@@ -1,0 +1,209 @@
+#!/bin/bash
+# Licensed under the GNU General Public License Version 2
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+####################################################################################################
+# Copyright 2013 Anthony Nordquist https://github.com/SalineOS salinelinux@gmail.com 
+
+## Load translations
+
+LanguageLess="$(echo "$LANG" | awk -F '.' '{print $1}')"
+
+if [ -f /etc/System-SAI/Translations/$LanguageLess ]; then
+ . /etc/System-SAI/Translations/$LanguageLess
+else
+ . /etc/System-SAI/Translations/en_US
+fi
+
+
+FSFunc () {
+
+echo "$Report"
+
+echo "$FILESYSTEMTXT">>"$Report"
+echo '_________________________________________________________________________________'>>"$Report"
+echo ' '>>"$Report"
+echo ' '>>"$Report"
+
+MountedFS=$(cat /proc/mounts | grep '/dev/' | grep -v 'devpts' | awk '{print $2}')
+
+for i in $MountedFS; do
+
+i="$(echo "$i" | sed -e 's|\\040| |g')"
+
+TempOutput=$(df "$i" -h --output="source,fstype,size,used,avail,target" --block-size=G)
+
+echo "$TempOutput" | sed -e 's|G |G        |'>>"$Report"
+
+echo ' '>>"$Report"
+echo ' '>>"$Report"
+
+done
+
+}
+
+
+CPUFunc () { 
+
+echo "$Report"
+
+echo "$CPUTEXT">>"$Report"
+echo '_________________________________________________________________________________'>>"$Report"
+echo ' '>>"$Report"
+echo ' '>>"$Report"
+
+lscpu>>"$Report"
+
+echo ' '>>"$Report"
+echo ' '>>"$Report"
+
+}
+
+
+MemoryFunc () {
+
+echo "$Report"
+
+echo "$MEMTXT">>"$Report"
+echo '_________________________________________________________________________________'>>"$Report"
+echo ' '>>"$Report"
+echo ' '>>"$Report"
+
+TempMem=$(free -h)
+
+echo "$(echo "$TempMem" | sed -e 's|Mem:          |Mem:   |g')">>"$Report"
+
+echo ' '>>"$Report"
+echo ' '>>"$Report"
+
+
+}
+
+
+TempFunc () {
+
+echo "$Report"
+
+echo "$TEMPERATURETXT">>"$Report"
+echo '_________________________________________________________________________________'>>"$Report"
+echo ' '>>"$Report"
+echo ' '>>"$Report"
+
+echo 'Celcius'>>"$Report"
+echo '_______'>>"$Report"
+echo ' '>>"$Report"
+sensors>>"$Report"
+
+echo ' '>>"$Report"
+echo ' '>>"$Report"
+
+echo 'Fahrenheit'>>"$Report"
+echo '__________'>>"$Report"
+echo ' '>>"$Report"
+sensors -f>>"$Report"
+
+echo ' '>>"$Report"
+echo ' '>>"$Report"
+
+}
+
+PCIFunc () {
+
+echo "$Report"
+
+echo "$PCIBUSTXT">>"$Report"
+echo '_________________________________________________________________________________'>>"$Report"
+echo ' '>>"$Report"
+echo ' '>>"$Report"
+
+lspci>>"$Report"
+
+echo ' '>>"$Report"
+echo ' '>>"$Report"
+
+}
+
+MainMenu () {
+
+if [ "$Report" != "" ]; then
+ rm -f "$Report"
+fi
+
+Report="System-SAI-Report-$RANDOM"
+
+uname -a>>"$Report"
+echo ' '>>"$Report"
+echo ' '>>"$Report"
+
+MainMenuArray=( "FALSE" "TEMP" "$TEMPERATURETXT" "FALSE" "FS" "$FILESYSTEMTXT" "FALSE" "MEM" "$MEMTXT" "FALSE" "CPU" "$CPUTEXT" "FALSE" "PCI" "$PCIBUSTXT" )
+
+Selection=$(yad --list --width="255" --always-print-result --height="275" --checklist --window-icon="gtk-info" --hide-column="2" --title="System Info" --print-column="2" --column="Options" --column="hidden" --column="Label" --no-headers --button=$"gtk-quit:3" --button=$"gtk-ok:2" "${MainMenuArray[@]}")
+
+ret="$?"
+
+if [ "$ret" = "3" ]; then
+ rm -f "$Report"
+ exit
+fi
+
+echo "$Selection"
+
+RunTEMP=$(echo "$Selection" | grep "TEMP")
+RunFS=$(echo "$Selection" | grep "FS")
+RunMEM=$(echo "$Selection" | grep "MEM")
+RunCPU=$(echo "$Selection" | grep "CPU")
+RunPCI=$(echo "$Selection" | grep "PCI")
+
+if [ "$RunTEMP" != "" ]; then
+ TempFunc
+fi
+
+if [ "$RunFS" != "" ]; then
+ FSFunc
+fi
+
+if [ "$RunMEM" != "" ]; then
+ MemoryFunc
+fi
+
+if [ "$RunCPU" != "" ]; then
+ CPUFunc
+fi
+
+if [ "$RunPCI" != "" ]; then
+ PCIFunc
+fi
+
+DisplayReport
+
+}
+
+DisplayReport () {
+
+echo -n "$(cat "$Report")" | yad --window-icon="gtk-info" --center --text-info --editable --title="$SAITITLE" --height="700" --width="750" --button=$"gtk-quit:3" --button=$"gtk-ok:5"
+
+ret="$?"
+
+if [ "$ret" = "3" ]; then
+ rm -f "$Report"
+ exit
+elif [ "$ret" = "5" ]; then
+ rm -f "$Report"
+ MainMenu
+fi
+
+}
+
+MainMenu

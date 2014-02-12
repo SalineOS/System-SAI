@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Exec=/usr/bin/System-SAI
+Name=System Status and Info
+GenericName=System Status and Info
+Icon=gtk-info
+TryExec=/usr/bin/System-SAI
+Categories=System;
+
